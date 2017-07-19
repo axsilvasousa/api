@@ -21,9 +21,6 @@ $app->get('/teste', function() use ($app) {
         ]
     ]);
  
-    $data = JWTWrapper::decode($jwt);
-    print_r($data);
- 
     return $jwt;
 });
  
@@ -54,14 +51,18 @@ $app->post('/auth', function (Request $request) use ($app) {
         'login' => 'false',
         'message' => 'Login Inválido',
     ]);
-    
+
 });
  
 // verificar autenticacao
 $app->before(function(Request $request, Application $app) {
     $route = $request->get('_route');
+    $routesNoBlock = [
+        'GET_teste',
+        'POST_auth'
+    ];
  
-    if($route != 'POST_auth') {
+    if(!in_array($route,$routesNoBlock)) {
         $authorization = $request->headers->get("Authorization");
         list($jwt) = sscanf($authorization, 'Bearer %s');
  
@@ -79,11 +80,27 @@ $app->before(function(Request $request, Application $app) {
         }
     }
 });
- 
+
+$app->register(new Silex\Provider\DoctrineServiceProvider(), array(
+    'db.options' => array(
+        'driver'    => 'pdo_mysql',
+        'host'      => 'localhost',
+        'dbname'    => 'silex',
+        'user'      => 'root',
+        'password'  => '',
+    ),
+));
+
 // rota deve ser acessada somente por usuario autorizado com jwt
-$app->get('/home', function(Application $app) {
-    $user = new Lista;    
+$app->get('/home', function(Application $app) {   
     return new Response ('Olá '. $app['jwt']->data->name. ' - '.$user->get());
+});
+
+$app->get('/users',function(Application $app) {
+    $users = $app['db']->fetchAll('SELECT * FROM users'); 
+    $response = new \Symfony\Component\HttpFoundation\JsonResponse();
+    $response->setContent(json_encode(array('users' => $users), JSON_NUMERIC_CHECK));
+    return $response;
 });
  
 $app->run();

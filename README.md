@@ -1,2 +1,2 @@
 # api
-Esqueleto para uma api
+Esqueleto para uma api usando silex e doctrine
